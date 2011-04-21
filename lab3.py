@@ -1,58 +1,63 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import sys, re
-
-# def build_table(G):
-#   res = []
-  
-#   return res
+DEBUG = True
 
 # G0 = """
 # E->E+T | T
 # T->T*F | F
 # F->(E) | a
 # """
+
 G = [("E", "E+T"),("E", "T"),("T", "T*F"),("T", "F"),("F", "(E)"),("F", "a")]
 
-def validate(s):
+def validate(s_raw):
+  if DEBUG: print 'проверяю выражение', s_raw
   m = "#"
-  p = 0
+  s = s_raw+'#'
   for i in range(len(s)):
     x = m[-1]
     y = s[i]
-    if T(x, y) != '>':
+    t = T(x,y)
+    if DEBUG: print 'сравниваю: ', x, 'и',y, '—', t
+    if '<' in t or '=' in t:
       m += y
-      # break from for cycle
-    elif greater(x,y):
-      m = sverni(m) # there are no procedures in python
+      if DEBUG: print 'в таблице есть <, наращиваю стек:', m[:-1], '->', m
+    if '>' in t:
+      m = '#'+ recursive_sverni(m[1:]) # there are no procedures in python
       # FIXME: check if m is changed 
       # break from for cycle
 #    elif nesravnimo(x,y):
       # break from cycle
   #end cycle
+    if t == '   ':
+      break
   return m == "#E"
+
+
+
 def recursive_sverni(s):
   res = sverni(s)
-  print res
   if res == s:
+    if DEBUG: print 'при последнем прогоне ничего не изменилось, хватит сворачивать'
     return res # break
-    print 'idempotency reached'
+  if DEBUG: print s, '->', res, 'стек изменился, надо сворачивать заново'
   res = recursive_sverni(res)
   return res
-DEBUG = True
+
+
 def sverni(s):
   res = s
   for i in range(len(res)):
-
-    if DEBUG: print 'applying rules to', s[-i:]
+    if DEBUG: print 'сворачиваю', s[-i:]
     for rule in G:
-      if DEBUG: print 'trying rule', rule
+      if DEBUG: print 'пробую правило', rule
       if rule[1] == s[-i:]:  # check bounds
-        if DEBUG: print 'replacing',s[-i:],'with',rule[0]
+        if DEBUG: print 'заменяю',s[-i:],'на',rule[0]
         res = s[:-i] + rule[0]
         break #return res
     if res != s: 
-      if DEBUG: print 'done'
+      if DEBUG: print 'готово дело'
       break
 
   return res
@@ -67,40 +72,7 @@ def sravni(x,y):
   else:
     print x, '<', y
 
-
-# #    E  T  F  a  (  )  +  *  #
-# G1= [[],[],[],[],[],[=],[=],[],[],  #E
-#      [],[],[],[],[],[>],[>],[=],[>],  #T
-#      [],[],[],[],[],[],[],[],[],  #F
-#      [],[],[],[],[],[],[],[],[],  #a
-#      [],[],[],[],[],[],[],[],[],  #(
-#      [],[],[],[],[],[],[],[],[],  #)
-#      [],[],[],[],[],[],[],[],[],  #+
-#      [],[],[],[],[],[],[],[],[],  #*
-#      [],[],[],[],[],[],[],[],[]]  ##
-
-# #     E    T    F    a    (    )    +    *    #
-# G2= [[  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],  #E
-#      [  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],  #T
-#      [  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],  #F
-#      [  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],  #a
-#      [  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],  #(
-#      [  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],  #)
-#      [  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],  #+
-#      [  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],  #*
-#      [  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ],[  ]]  ##
-
-#    E    T    F    a    (    )    +    *    #
-# G3= [[  ],[  ],[  ],[  ],[  ],[= ],[= ],[  ],[  ],  #E
-#      [  ],[  ],[  ],[  ],[  ],[> ],[> ],[= ],[> ],  #T
-#      [  ],[  ],[  ],[  ],[  ],[> ],[> ],[> ],[> ],  #F
-#      [  ],[  ],[  ],[  ],[  ],[> ],[> ],[> ],[> ],  #a
-#      [  ],[  ],[  ],[  ],[  ],[> ],[> ],[> ],[> ],  #(
-#      [<,=],[<],[< ],[< ],[< ],[  ],[  ],[  ],[  ],  #)
-#      [  ],[<,=],[<],[< ],[< ],[  ],[  ],[  ],[  ],  #+
-#      [  ],[= ],[= ],[< ],[< ],[  ],[  ],[  ],[  ],  #*
-#      [< ],[< ],[< ],[< ],[< ],[  ],[  ],[  ],[  ]]  ##
-
+# Таблица предшествования
 G4 = '''
   | E  T  F  a  (  )  +  *  #
 __|__________________________
@@ -113,12 +85,22 @@ a |                >  >  >  >
 + |    <= <  <  <            
 * |       =  <  <            
 # | <  <  <  <  <            '''
-G5 = G4.split('\n')[3:]
-L = list(l[0:1] for l in G5)
-G6 = list(l[3:] for l in G5)
 
+G5 = G4.split('\n')[3:]              # Список строк таблицы предшествования
+L = list(l[0:1] for l in G5)         # Алфавит
+Ln = enumerate(L)                    # Нумерованный алфавил
+G6 = list(l[3:]+' ' for l in G5)     # Строки с отрезанными головами
 
-
+G8 = ((s, r, G6[i][3*j:3*(j+1)]) for i, s in Ln for j, r in Ln)     # Кортежи вида (символ, символ, значение предшествования)
+#G9 = [(L[i], L[j], G6[i][3*j:3*(j+1)]) for i in range(9) for j in range(9)]
+#Gdict = {(s,r):G6[i][3*j:3*(j+1)] for i, s in Ln for j, r in Ln}
+def T(x, y):
+  for i in range(len(G9)):
+    if G9[i*9][0] == x:
+      for j, r in enumerate(L):
+        if y == G9[i*9 + j][1]:
+          return G9[i*9 + j][2]
+  
 ################################################################################
 #	Дальше идут проверки
 
