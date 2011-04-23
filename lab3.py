@@ -31,6 +31,8 @@ def validate(s_raw):
       # break from cycle
   #end cycle
     if t == '   ':
+      if DEBUG: print 'По таблице предшествования', x, 'никогда не встечается перед',y, 'в правильном выражении'
+      if FROM_TEST: print '\n', 'несмотря на то, что это выражение было порождено с помощью тех же правил подстановки, что используются при свертке\n', 'приходится счесть его некорректным'
       break
   return m == "#E"
 
@@ -91,8 +93,12 @@ L = list(l[0:1] for l in G5)         # Алфавит
 Ln = enumerate(L)                    # Нумерованный алфавил
 G6 = list(l[3:]+' ' for l in G5)     # Строки с отрезанными головами
 
-G8 = ((s, r, G6[i][3*j:3*(j+1)]) for i, s in Ln for j, r in Ln)     # Кортежи вида (символ, символ, значение предшествования)
-#G9 = [(L[i], L[j], G6[i][3*j:3*(j+1)]) for i in range(9) for j in range(9)]
+def parsePrecTable(G):
+  lines = G('\n')[3:]
+  L = list(l[0:1] for l in lines
+  return (L, PrecTuples)
+#G8 = ((s, r, G6[i][3*j:3*(j+1)]) for i, s in Ln for j, r in Ln)     # Кортежи вида (символ, символ, значение предшествования)
+G9 = [(L[i], L[j], G6[i][3*j:3*(j+1)]) for i in range(9) for j in range(9)]
 #Gdict = {(s,r):G6[i][3*j:3*(j+1)] for i, s in Ln for j, r in Ln}
 def T(x, y):
   for i in range(len(G9)):
@@ -103,7 +109,34 @@ def T(x, y):
   
 ################################################################################
 #	Дальше идут проверки
-
+# К счастью, для проверки достаточно породить несколько выражений
+def expand(expr, rules=G, depth=3, exprs = []):
+  global.FROM_TEST = True
+  if depth == 0:
+    return exprs
+  if DEBUG: print 'depth', depth
+  depth -= 1
+#  res = exprs.append(expr)
+  if not exprs:
+    res = [expr]
+  else: 
+    res = exprs
+  new_res = []
+  for e in res:
+    if DEBUG: print 'processing expression', e
+    for r in rules:
+      if DEBUG: print 'trying rule', r, 'on expression', e, 'of', res
+      
+      pos = e.find(r[0])
+      if pos+1: 
+        if DEBUG: print 'augmenting', e, 'with', r
+        augment = e[:pos] + r[1] + e[pos+len(r[1]):]
+        if augment not in res:
+          new_res.append(augment)
+#        res = list(set(res))
+  return expand(expr, depth=depth, exprs=new_res)
+      
+    
 def main():
   return 0
 
