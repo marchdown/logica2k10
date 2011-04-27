@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#
 #  R    /R
 # QA  |  B
 #  -------
@@ -40,21 +43,33 @@ def f (a, b):
   D = [not a[i] and not b[i] for i in l]
   return map (sumTrue, (A, B, C, D))
 
-def ratio(a, b):
+def otvet(a,b):
   A, B, C, D = f(a, b)
   if A*B == -D*C: return "fubar" # на ноль делить нельзя
-  res = (A*B - D*C) / (A*B + D*C)
+  res = float(A*B - D*C)  / (A*B + D*C)
+  return  res
+
+genres = K, L, M, N, P, R
+bgenres = bK, bL, bM, bN, bP, bR = map(parseStr, genres)
+gnames = ['K', 'L', 'M', 'N', 'P', 'R']
+o = [otvet(i, j) for i in bgenres for j in bgenres]
+
+def printNums():
+  for g in bgenres:
+    print sumTrue(g)
+
+def A(Key1, Key2):
+  res = [Key1[i] and Key2[i] for i in range(len(Key1))]
   return res
-
-
+  
 # data
 #   01         11        21        31        41        51        61        71        81        91       100 
 #   !#         #         #         #         #         #         #         #         #         #        !#
 K = 'ttttftfftfttffffftftftfffftttfffftfffftttfttfttfftffttfttttftftttttttfftfftftffttttfttfttttftttftftf'
 L = 'ttttfftftfttffffttftftftfttftffffttftfftfftttttfffffttfttttttftttttttfftfftftffttttfttfttttftttftftt'
 M = 'fftt--.--.ttf.ffttftftftftt.tfff.ttftf.t.ft--ttfffffttftttt-tftttttttfftfftftffttttfttftttt.ttt.tftt'
-N = 'ttttftfftfftffftftftftftfttftftfftfffffttftftttfffffttfttttttfttttttttftfftftffttttfttfttttffttftftt'
-P = 'ttttftfftfttffffttftftffftttfftfftfffffttfttfttfftffttfttttttfttttttttftfftftffttttfttfttttftttftftt'
+N = 'ttttftfftfftffftftftftftfttftftfftfffffttftftttfffffttfttttttftttttttfftfftftffttttfttfttttffttftftt' # ?
+P = 'ttttftfftfttffffttftftffftttfftfftfffffttfttfttfftffttfttttttftttttttfftfftftffttttfttfttttftttftftt'
 R = 'ttttttfttfftffffftftftftftfttftfftfftftftftftttfttfftffttttttftttttttfftfftftfttttttttftttttftfftttt'
 #   01         11        21        31        41        51        61        71        81        91       100 
 #   !#         #         #         #         #         #         #         #         #         #        !#
