@@ -34,8 +34,8 @@ def ab2E(c):
 
 def validate_explicit(s):
   m = "#"
-  for i in range(len(s)):
-    m += ab2E(s[i])
+  for c in s:
+    m += ab2E(c)
     print 'm = ', unicode(m).encode('utf-8'), '\t последние пять знаков буфера: ', m[-5:]
     if m[-5:] in ["(E+E)", "(E*E)"]:
       print u'производим замену:'.encode('utf-8'), m, '\t->', m[:-5]+"E"
