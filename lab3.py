@@ -1,8 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# module lab3
 import sys, re
 import logging 
 #DEBUG = True
+
 
 Expansion_Rules_raw = """
 E->E+T | T
@@ -10,9 +12,9 @@ T->T*F | F
 F->(E) | a
 """
 ########################################
-####  В этом блоке разбирается текстовое представнение таблиц предшевствования и правил вывода
-def parse_grammar(G=G0, reL=reL):
-  rules =  [parse_rule(r, reL) for r in G[1:-1].split('\n')]
+####  В этом блоке разбирается текстовое представнение таблиц предшествования и правил вывода
+def parse_grammar(G, reL):
+  rules = [parse_rule(r, reL) for r in G[1:-1].split('\n')]
   return expand_all_rules(rules)
 def parse_rule(r, reL):
   match_string = '(' + reL + '+)->(' + reL[:-1] + ' |]*)'
@@ -30,8 +32,6 @@ def expand_rule(r):
   for e in expansion_results:
     res.append((expansion_base, e))
   return res
-G = parse_grammar(G0, reL)
-#G = [("E", "E+T"),("E", "T"),("T", "T*F"),("T", "F"),("F", "(E)"),("F", "a")]
 ########################################
 # Таблица предшествования
 Precedence_Table_raw = '''
@@ -52,17 +52,39 @@ def Alphabet_From_Precedence_Table(Precedence_Table_raw):
   # Список строк таблицы предшествования
   L = list(l[0:1] for l in Precedence_Table_lines)         # Список символов алфавита
   reL ='['+''.join(L)+']'              # в форме, годной для регулярного выражения
-  Ln = enumerate(L)                    # Нумерованный алфавит
-  Precedence_Table_data = list(l[3:]+' ' for l in Precedence_Table_lines)   # Строки с отрезанными головами
-
   return reL
+def Alphabet_And_Dict_From_Precedence_Table(Precedence_Table_raw):
+  Precedence_Table_lines = Precedence_Table_raw.split('\n')[3:]
+  # Список строк таблицы предшествования
+  L = list(l[0:1] for l in Precedence_Table_lines)         # Список символов алфавита
+  reL ='['+''.join(L)+']'              # в форме, годной для регулярного выражения
+  hs = enumerate(L)                    # Нумерованный алфавит
+  ls = list(l[3:]+' ' for l in Precedence_Table_lines)   # Строки с отрезанными головами
+  print hs
+  return reL, dict_from_enumerated_heads_and_lines(hs, ls)
 
+# [индексы] * [индексы] * [строки] -> {индекс}{индекс}{ячейка}
+def dict_from_enumerated_heads_and_lines(heads,ls):
+  hs = list(heads)
+  logging.debug("heads are %s", hs)
+  d = {}
+#  a = []
+  for x, h in hs:
+    logging.debug("outer loop x:%s, h:%s", x, h)
+    d[h] = {}
+#    a[x] = []
+    for y, g in hs:
+      logging.debug("inner loop y:%s, g:%s", y, g)
+      d[h][g] = ls[x][3*y:3*(y+1)]
+#      a[x][y] = ls[x][3*y:3*(y+1)]
+  return d
+  
 def parsePrecTable(G):
   lines = G('\n')[3:]
   L = list(l[0:1] for l in lines)
   return (L, PrecTuples)
 #G8 = ((s, r, G6[i][3*j:3*(j+1)]) for i, s in Ln for j, r in Ln)     # Кортежи вида (символ, символ, значение предшествования)
-G9 = [(L[i], L[j], Precedence_Table_data[i][3*j:3*(j+1)]) for i in range(len(L)) for j in range(len(L))]
+#G9 = [(L[i], L[j], Precedence_Table_data[i][3*j:3*(j+1)]) for i in range(len(L)) for j in range(len(L))]
 #Gdict = {(s,r):G6[i][3*j:3*(j+1)] for i, s in Ln for j, r in Ln}
 
 def T(x, y):
@@ -72,11 +94,21 @@ def T(x, y):
         if y == G9[i*9 + j][1]:
           return G9[i*9 + j][2]
 
+G = parse_grammar(Expansion_Rules_raw, Alphabet_From_Precedence_Table(Precedence_Table_raw))
+#G = [("E", "E+T"),("E", "T"),("T", "T*F"),("T", "F"),("F", "(E)"),("F", "a")]
+
+T = 'a()+*'
+N = 'ETF'
+R = parse_grammar(Expansion_Rules_raw, '['+T+N+']')
+S = '#'
 ########################################
 #### Основная логика программы
 #    Программа принимает на вход выражение и проверяет его на корректность
 #  с помощью таблицы предшествования
-
+#  
+#  Выражение состоит только из конечных символов.
+#
+#
 def validate(s_raw):
   logging.debug( "проверяю выражение %s", s_raw)
   m = "#"
