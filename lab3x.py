@@ -12,9 +12,7 @@ F->(E) | a
 ########################################
 ####  В этом блоке разбирается текстовое представнение таблиц предшевствования и правил вывода
 def parse_grammar(G=G0, reL=reL):
-#  rules = [r for r in G[1:-1].split('\n')]
   rules =  [parse_rule(r, reL) for r in G[1:-1].split('\n')]
-  logging.warn(rules)
   return expand_all_rules(rules)
 def parse_rule(r, reL):
   match_string = '(' + reL + '+)->(' + reL[:-1] + ' |]*)'
@@ -49,13 +47,15 @@ a |                >  >  >  >
 * |       =  <  <            
 # | <  <  <  <  <            '''
 
-Precedence_Table_lines = Precedence_Table_raw.split('\n')[3:] 
-# Список строк таблицы предшествования
-L = list(l[0:1] for l in Precedence_Table_lines)         # Список символов алфавита
-reL ='['+''.join(L)+']'              # в форме, годной для регулярного выражения
-Ln = enumerate(L)                    # Нумерованный алфавит
-Precedence_Table_data = list(l[3:]+' ' for l in Precedence_Table_lines)
-# Строки с отрезанными головами
+def Alphabet_From_Precedence_Table(Precedence_Table_raw):
+  Precedence_Table_lines = Precedence_Table_raw.split('\n')[3:]
+  # Список строк таблицы предшествования
+  L = list(l[0:1] for l in Precedence_Table_lines)         # Список символов алфавита
+  reL ='['+''.join(L)+']'              # в форме, годной для регулярного выражения
+  Ln = enumerate(L)                    # Нумерованный алфавит
+  Precedence_Table_data = list(l[3:]+' ' for l in Precedence_Table_lines)   # Строки с отрезанными головами
+
+  return reL
 
 def parsePrecTable(G):
   lines = G('\n')[3:]
