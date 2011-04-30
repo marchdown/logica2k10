@@ -12,48 +12,92 @@ F->(E) | a
 ########################################
 ####  В этом блоке разбирается текстовое представнение таблиц предшевствования и правил вывода
 def parse_expansions_table(G0):
-  rules = [r for r in G0[1:-1].split('\n')]
-#  print rules
+#  rules = [r for r in G0[1:-1].split('\n')]
+  rules =  [parse_rule(r) for r in G0[1:-1].split('\n')]
   return expand_all_rules(rules)
-  
-substitution_matches = [re.search('(\w+)->(.+)(?: \| )(.+)', x) for x in rules]
 def parse_rule(r):
-  logging.warning("entered parse_rule(%s)", r)
   match_string = '(' + reL + '+)->(' + reL[:-2] + ' |]+)'
   match = re.search(match_string, r)
   expansion_base, expansion_results = match.group(1), match.group(2).split(' | ')
   return expansion_base, expansion_results
-def parse_expansion_results(expansion_results):
-  return expansion_results.split(' | ')
+def expand_all_rules(rs):
+  res = []
+  for r in rs:
+    res += expand_rule(r)
+  return res
 def expand_rule(r):
+  res = []
+  expansion_base, expansion_results = r
+  for e in expansion_results:
+    res.append((expansion_base, e))
+  return res
+######################################## Альтернативный вариант для отладки
+def parse_expansions_table_alt(G0):
+  rules = [r for r in G0[1:-1].split('\n')]
+  return expand_all_rules(rules)
+def expand_unparsed_rule(r):
   res = []
   expansion_base, expansion_results = parse_rule(r)
   for e in expansion_results:
     res.append((expansion_base, e))
   return res
-def expand_all_rules(rs):
-  #return [expand_rule( r) for r in rs]
+def expand_all_unparsed_rules(rs):
   res = []
   for r in rs:
-    logging.warning("while expanding %s came across %s", rs, r)
-    res += expand_rule(r)
+    res += expand_unparsed_rule(r)
   return res
-substitutions= map(lambda x:(x.group(1), x.group(2)), substitution_matches) +map(lambda x:(x.group(1), x.group(3)), substitution_matches)
+#G = [("E", "E+T"),("E", "T"),("T", "T*F"),("T", "F"),("F", "(E)"),("F", "a")]
+#G = parse_expansions_table(G0)
+########################################
+# Таблица предшествования
+G4 = '''
+  | E  T  F  a  (  )  +  *  #
+__|__________________________
+E |                =  =      
+T |                >  >  =  >
+F |                >  >  >  >
+a |                >  >  >  >
+) |                >  >  >  >
+( |<=  <  <  <  <            
++ |    <= <  <  <            
+* |       =  <  <            
+# | <  <  <  <  <            '''
 
-G = [("E", "E+T"),("E", "T"),("T", "T*F"),("T", "F"),("F", "(E)"),("F", "a")]
+G5 = G4.split('\n')[3:]              # Список строк таблицы предшествования
+L = list(l[0:1] for l in G5)         # Список символов алфавита
+reL ='['+''.join(L)+']'        # в форме, годной для регулярного выражения
+Ln = enumerate(L)                    # Нумерованный алфавит
+G6 = list(l[3:]+' ' for l in G5)     # Строки с отрезанными головами
+
+def parsePrecTable(G):
+  lines = G('\n')[3:]
+  L = list(l[0:1] for l in lines)
+  return (L, PrecTuples)
+#G8 = ((s, r, G6[i][3*j:3*(j+1)]) for i, s in Ln for j, r in Ln)     # Кортежи вида (символ, символ, значение предшествования)
+G9 = [(L[i], L[j], G6[i][3*j:3*(j+1)]) for i in range(9) for j in range(9)]
+#Gdict = {(s,r):G6[i][3*j:3*(j+1)] for i, s in Ln for j, r in Ln}
+def T(x, y):
+  for i in range(len(G9)):
+    if G9[i*9][0] == x:
+      for j, r in enumerate(L):
+        if y == G9[i*9 + j][1]:
+          return G9[i*9 + j][2]
+
+########################################
+#### Основная логика программы
 
 def validate(s_raw):
-  logging.debug( 'проверяю выражение', s_raw)
+  logging.debug( "проверяю выражение %s", s_raw)
   m = "#"
   s = s_raw+'#'
   for i in range(len(s)):
     x = m[-1]
     y = s[i]
     t = T(x,y)
-    logging.debug( 'сравниваю: ', x, 'и',y, '—', t)
+    logging.debug( 'сравниваю: %s и %s -- %s', x, y, t)
     if '<' in t or '=' in t:
       m += y
-      logging.debug( 'в таблице есть <, наращиваю стек:', m[:-1], '->', m)
+      logging.debug( 'в таблице есть <, наращиваю стек: %s+%s', m[:-1], m[-1])
     if '>' in t:
       m = '#'+ recursive_sverni(m[1:]) # there are no procedures in python
       # FIXME: check if m is changed 
@@ -105,39 +149,6 @@ def sravni(x,y):
   else:
     print x, '<', y
 
-# Таблица предшествования
-G4 = '''
-  | E  T  F  a  (  )  +  *  #
-__|__________________________
-E |                =  =      
-T |                >  >  =  >
-F |                >  >  >  >
-a |                >  >  >  >
-) |                >  >  >  >
-( |<=  <  <  <  <            
-+ |    <= <  <  <            
-* |       =  <  <            
-# | <  <  <  <  <            '''
-
-G5 = G4.split('\n')[3:]              # Список строк таблицы предшествования
-L = list(l[0:1] for l in G5)         # Список символов алфавита
-reL ='['+''.join(L)+']'        # в форме, годной для регулярного выражения
-Ln = enumerate(L)                    # Нумерованный алфавит
-G6 = list(l[3:]+' ' for l in G5)     # Строки с отрезанными головами
-
-def parsePrecTable(G):
-  lines = G('\n')[3:]
-  L = list(l[0:1] for l in lines)
-  return (L, PrecTuples)
-#G8 = ((s, r, G6[i][3*j:3*(j+1)]) for i, s in Ln for j, r in Ln)     # Кортежи вида (символ, символ, значение предшествования)
-G9 = [(L[i], L[j], G6[i][3*j:3*(j+1)]) for i in range(9) for j in range(9)]
-#Gdict = {(s,r):G6[i][3*j:3*(j+1)] for i, s in Ln for j, r in Ln}
-def T(x, y):
-  for i in range(len(G9)):
-    if G9[i*9][0] == x:
-      for j, r in enumerate(L):
-        if y == G9[i*9 + j][1]:
-          return G9[i*9 + j][2]
   
 ################################################################################
 #	Дальше идут проверки
