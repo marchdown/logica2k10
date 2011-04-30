@@ -3,30 +3,92 @@
 import sys, re
 import logging 
 #DEBUG = True
-reL ='['+str(L)+']'
-G0 = """
+
+Expansion_Rules_raw = """
 E->E+T | T
 T->T*F | F
 F->(E) | a
 """
-rules = G0[1:-1].split('\n')
-substitution_matches = [re.search('(\w+)->(.+)(?: \| )(.+)', x) for x in rules]
-substitutions= map(lambda x:(x.group(1), x.group(2)), substitution_matches) +map(lambda x:(x.group(1), x.group(3)), substitution_matches)
+########################################
+####  В этом блоке разбирается текстовое представнение таблиц предшевствования и правил вывода
+def parse_grammar(G=G0, reL=reL):
+  rules =  [parse_rule(r, reL) for r in G[1:-1].split('\n')]
+  return expand_all_rules(rules)
+def parse_rule(r, reL):
+  match_string = '(' + reL + '+)->(' + reL[:-1] + ' |]*)'
+  match = re.search(match_string, r)
+  expansion_base, expansion_results = match.group(1), match.group(2).split(' | ')
+  return expansion_base, expansion_results
+def expand_all_rules(rs):
+  res = []
+  for r in rs:
+    res += expand_rule(r)
+  return res
+def expand_rule(r):
+  res = []
+  expansion_base, expansion_results = r
+  for e in expansion_results:
+    res.append((expansion_base, e))
+  return res
+G = parse_grammar(G0, reL)
+#G = [("E", "E+T"),("E", "T"),("T", "T*F"),("T", "F"),("F", "(E)"),("F", "a")]
+########################################
+# Таблица предшествования
+Precedence_Table_raw = '''
+  | E  T  F  a  (  )  +  *  #
+__|__________________________
+E |                =  =      
+T |                >  >  =  >
+F |                >  >  >  >
+a |                >  >  >  >
+) |                >  >  >  >
+( |<=  <  <  <  <            
++ |    <= <  <  <            
+* |       =  <  <            
+# | <  <  <  <  <            '''
 
-G = [("E", "E+T"),("E", "T"),("T", "T*F"),("T", "F"),("F", "(E)"),("F", "a")]
+def Alphabet_From_Precedence_Table(Precedence_Table_raw):
+  Precedence_Table_lines = Precedence_Table_raw.split('\n')[3:]
+  # Список строк таблицы предшествования
+  L = list(l[0:1] for l in Precedence_Table_lines)         # Список символов алфавита
+  reL ='['+''.join(L)+']'              # в форме, годной для регулярного выражения
+  Ln = enumerate(L)                    # Нумерованный алфавит
+  Precedence_Table_data = list(l[3:]+' ' for l in Precedence_Table_lines)   # Строки с отрезанными головами
+
+  return reL
+
+def parsePrecTable(G):
+  lines = G('\n')[3:]
+  L = list(l[0:1] for l in lines)
+  return (L, PrecTuples)
+#G8 = ((s, r, G6[i][3*j:3*(j+1)]) for i, s in Ln for j, r in Ln)     # Кортежи вида (символ, символ, значение предшествования)
+G9 = [(L[i], L[j], Precedence_Table_data[i][3*j:3*(j+1)]) for i in range(len(L)) for j in range(len(L))]
+#Gdict = {(s,r):G6[i][3*j:3*(j+1)] for i, s in Ln for j, r in Ln}
+
+def T(x, y):
+  for i in range(len(G9)):
+    if G9[i*9][0] == x:
+      for j, r in enumerate(L):
+        if y == G9[i*9 + j][1]:
+          return G9[i*9 + j][2]
+
+########################################
+#### Основная логика программы
+#    Программа принимает на вход выражение и проверяет его на корректность
+#  с помощью таблицы предшествования
 
 def validate(s_raw):
-  logging.debug( 'проверяю выражение', s_raw)
+  logging.debug( "проверяю выражение %s", s_raw)
   m = "#"
   s = s_raw+'#'
   for i in range(len(s)):
     x = m[-1]
     y = s[i]
     t = T(x,y)
-    logging.debug( 'сравниваю: ', x, 'и',y, '—', t)
+    logging.debug( 'сравниваю: %s и %s -- %s', x, y, t)
     if '<' in t or '=' in t:
       m += y
-      logging.debug( 'в таблице есть <, наращиваю стек:', m[:-1], '->', m)
+      logging.debug( 'в таблице есть <, наращиваю стек: %s+%s', m[:-1], m[-1])
     if '>' in t:
       m = '#'+ recursive_sverni(m[1:]) # there are no procedures in python
       # FIXME: check if m is changed 
@@ -78,38 +140,6 @@ def sravni(x,y):
   else:
     print x, '<', y
 
-# Таблица предшествования
-G4 = '''
-  | E  T  F  a  (  )  +  *  #
-__|__________________________
-E |                =  =      
-T |                >  >  =  >
-F |                >  >  >  >
-a |                >  >  >  >
-) |                >  >  >  >
-( |<=  <  <  <  <            
-+ |    <= <  <  <            
-* |       =  <  <            
-# | <  <  <  <  <            '''
-
-G5 = G4.split('\n')[3:]              # Список строк таблицы предшествования
-L = list(l[0:1] for l in G5)         # Алфавит
-Ln = enumerate(L)                    # Нумерованный алфавил
-G6 = list(l[3:]+' ' for l in G5)     # Строки с отрезанными головами
-
-def parsePrecTable(G):
-  lines = G('\n')[3:]
-  L = list(l[0:1] for l in lines)
-  return (L, PrecTuples)
-#G8 = ((s, r, G6[i][3*j:3*(j+1)]) for i, s in Ln for j, r in Ln)     # Кортежи вида (символ, символ, значение предшествования)
-G9 = [(L[i], L[j], G6[i][3*j:3*(j+1)]) for i in range(9) for j in range(9)]
-#Gdict = {(s,r):G6[i][3*j:3*(j+1)] for i, s in Ln for j, r in Ln}
-def T(x, y):
-  for i in range(len(G9)):
-    if G9[i*9][0] == x:
-      for j, r in enumerate(L):
-        if y == G9[i*9 + j][1]:
-          return G9[i*9 + j][2]
   
 ################################################################################
 #	Дальше идут проверки
