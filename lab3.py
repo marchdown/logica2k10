@@ -6,14 +6,13 @@ CFGrammar = namedtuple('Context_Free_Grammar', 'T N R S')
 log = logging.getLogger("lab3")
 logging.basicConfig()
 log.setLevel(logging.INFO)
-log.warn('This is a friendly warning')
-log.debug('This, on the other hand, is a debug message')
+
 ########################################
 ####  В этом блоке задаются вспомогательные функции
 ####  для приведения таблиц предшествования 
 ####  и правил вывода в пригодный для работы вид
 
-def parse_grammar(G, reL):
+def parse_rules(G, reL):
   rules = [parse_rule(r, reL) for r in G[1:-1].split('\n')]
   return expand_all_rules(rules)
 def parse_rule(r, reL):
@@ -34,7 +33,7 @@ def expand_rule(r):
   return res
 ######################################## Дальше разбрается таблица
 
-def Alphabet_And_Dict_From_Precedence_Table(Precedence_Table_raw):
+def parse_table(Precedence_Table_raw):
   hcs_raw, Precedence_Table_lines = Precedence_Table_raw.split('\n')[1], Precedence_Table_raw.split('\n')[3:] # Список строк таблицы предшествования
   L = list(l[0:1] for l in Precedence_Table_lines)         # Список символов алфавита
   reL ='['+''.join(L)+']'              # в форме, годной для регулярного выражения
@@ -85,14 +84,14 @@ a |                >  >  >  >
 T, N, S = 'a()+*', 'ETF', '#'
 
 #### Что получается после разбора и используется в программе:
-reL, PrecTable = Alphabet_And_Dict_From_Precedence_Table(Precedence_Table_raw)
-R = parse_grammar(Expansion_Rules_raw, reL)
-#R = parse_grammar(Expansion_Rules_raw, '['+T+N+']')
+reL, PrecTable = parse_table(Precedence_Table_raw)
+R = parse_rules(Expansion_Rules_raw, reL)
+#R = parse_rules(Expansion_Rules_raw, '['+T+N+']')
 #R = [("E", "E+T"),("E", "T"),("T", "T*F"),("T", "F"),("F", "(E)"),("F", "a")]
 L3 = CFGrammar(T, N, R, S)
-def Prec(h, g):          #G(T) из задания. Имя T уже занято под множество конечных символов
-  return PrecTable[h][g]
-def tabulate(PrecTable=PrecTable): # Эта функция воспроизводит таблицу
+def Prec(h, g, pt=PrecTable):          #G(T) из задания. Имя T уже занято под множество конечных символов
+  return pt[h][g]
+def tabulate(pt=PrecTable, reL=reL): # Эта функция воспроизводит таблицу
   L = reL[1:-1]
   print '  |',
   for c in L:
@@ -101,7 +100,7 @@ def tabulate(PrecTable=PrecTable): # Эта функция воспроизво�
   for x in L:
     line = x + ' |'
     for y in L:
-        line += Prec(x, y) #(PrecTable[x][y])
+        line += Prec(x, y, pt=pt) #(PrecTable[x][y])
     print(line)
 ########################################
 #### Основная логика программы
