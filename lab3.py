@@ -111,6 +111,36 @@ def tabulate(PrecTable=PrecTable): # Эта функция воспроизво�
 #
 #
 
+def prover(s_raw):
+  s = s_raw+'#'
+  m = '#'
+  i = 0
+  y = s[i]
+  while y != "#":
+#    log.debug('вхожу в цикл в %s-й раз из %s', i, len(s))
+    x = m[-1]
+    t = Prec(x, y)
+    log.debug('вхожу в цикл, s = %s, m = %s, y = %s',s, m, y )
+    w = True
+    if ('=' in t) or ('<' in t):
+      w = False
+      log.debug('перенос %s на m = %s', y, m)
+      m = m+y
+      x = m[-1]
+      i += 1
+      y = s[i]
+      t = Prec(x, y)
+      log.debug('после переноса указатель сдвинулся на %s', y)
+    if ('>' in t):
+      w = False
+      log.debug('свертка %s', m)
+      m = recursive_sverni(m)
+      x = m[-1]
+    if w:
+      log.debug('пусто, заканчиваем')
+      return m == "#E" and y == '#'
+  return m == "#E" and y == '#'
+
 def validate(s_raw):
   log.debug( "проверяю выражение %s", s_raw)
   m = "#"
@@ -119,35 +149,31 @@ def validate(s_raw):
 
   for i in range(len(s)):
     y = s[i]
-#    log.debug('[i:%s] = %s обрабатываю строку %s', i, y, s)
+    log.debug('[i:%s] = %s обрабатываю строку %s', i, y, s)
     x = m[-1]
     t = Prec(x,y)
 
-#    log.debug( 'сравниваю: %s на стеке и %s в строке %s', x, y, t)
+    log.debug( 'сравниваю: %s на стеке и %s в строке %s', x, y, t)
     if '<' in t or '=' in t:
       m += y
       log.debug( 'в таблице есть < или =, наращиваю стек до %s', m)
 
     if '>' in t:
-      log.warn('встретилось >, сворачиваем')
+      log.warn('встретилось >, сворачиваем %s', m)
       m = '#'+ recursive_sverni(m[1:])
-      # FIXME: check if m is changed 
-      # break from for cycle
-#    elif nesravnimo(x,y):
-      # break from cycle
-  #end cycle
-    if t == '  ':
+    log.warn( 'в таблице нет знаков. t пустое? |%s|', t)
+    if ('<' not in t) and ('>' not in t) and ( '=' not in t):
       log.debug('в таблице пусто, сравниваем стек с #E')
-#      if FROM_TEST: print '\n', 'несмотря на то, что это выражение было порождено с помощью тех же правил подстановки, что используются при свертке\n', 'приходится счесть его некорректным'
-      break
+      return m == "#E" and y == '#'
   log.debug('цикл закончен, сравниваем стек с #E')
-  return m == "#E"
+  return m == "#E" # and y == '#'
 
 
 def recursive_sverni(s):
   res = sverni(s)
   if res == s:
-    log.debug( 'при последнем прогоне ничего не изменилось, хватит сворачивать')
+    log.debug( 'при последнем прогоне m остался %s, хватит сворачивать', s)
+
     return res # break
   log.debug('%s -> %s стек изменился, надо сворачивать заново', s, res)
   res = recursive_sverni(res)
@@ -157,12 +183,12 @@ def recursive_sverni(s):
 def sverni(s):
   res = s
   for i in range(len(res)):
-    log.debug( 'сворачиваю %s', s[-i:])
+    log.debug( 'i = %s, сворачиваю %s', i, s[i:])
     for rule in R:
       log.debug( 'пробую правило %s', rule)
-      if rule[1] == s[-i:]:  # check bounds
-        logging.debug( 'заменяю %s на %s',s[-i:],rule[0])
-        res = s[:-i] + rule[0]
+      if rule[1] == s[i:]:  # check bounds
+        logging.debug( 'заменяю %s на %s',s[i:],rule[0])
+        res = s[:i] + rule[0]
         break #return res
     if res != s: 
       logging.debug( 'свернуто')
