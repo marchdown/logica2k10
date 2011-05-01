@@ -5,7 +5,7 @@ from collections import namedtuple
 CFGrammar = namedtuple('Context_Free_Grammar', 'T N R S')
 log = logging.getLogger("lab3")
 logging.basicConfig()
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 log.warn('This is a friendly warning')
 log.debug('This, on the other hand, is a debug message')
 ########################################
@@ -107,93 +107,52 @@ def tabulate(PrecTable=PrecTable): # Эта функция воспроизво�
 #### Основная логика программы
 #    Программа принимает на вход выражение и проверяет его на корректность
 #  с помощью таблицы предшествования
-#  Выражение состоит только из конечных (основных) символов.
-#
-#
 
 def prover(s_raw):
   s = s_raw+'#'
   m = '#'
   i = 0
-  y = s[i]
-  while y != "#":
-#    log.debug('вхожу в цикл в %s-й раз из %s', i, len(s))
-    x = m[-1]
-    t = Prec(x, y)
-    log.debug('вхожу в цикл, s = %s, m = %s, y = %s',s, m, y )
+  while s[i] != "#":
+    log.debug('вхожу в цикл, s = %s, m = %s, y = %s',s, m,  s[i] )
     w = True
-    if ('=' in t) or ('<' in t):
+    if ('=' in Prec(m[-1], s[i])) or ('<' in Prec(m[-1], s[i])):
       w = False
-      log.debug('перенос %s на m = %s', y, m)
-      m = m+y
-      x = m[-1]
+      log.info('Перенос %s на m = %s',  s[i], m)
+      m += s[i]
       i += 1
-      y = s[i]
-      t = Prec(x, y)
-      log.debug('после переноса указатель сдвинулся на %s', y)
-    if ('>' in t):
+      log.debug('после переноса указатель сдвинулся на %s', s[i])
+    if ('>' in Prec(m[-1], s[i])):
       w = False
       log.debug('свертка %s', m)
-      m = recursive_sverni(m)
-      x = m[-1]
+      m = sverni(m)
     if w:
       log.debug('пусто, заканчиваем')
-      return m == "#E" and y == '#'
-  return m == "#E" and y == '#'
-
-def validate(s_raw):
-  log.debug( "проверяю выражение %s", s_raw)
-  m = "#"
-  s = s_raw+'#'
-#  for y in s[::-1]:
-
-  for i in range(len(s)):
-    y = s[i]
-    log.debug('[i:%s] = %s обрабатываю строку %s', i, y, s)
-    x = m[-1]
-    t = Prec(x,y)
-
-    log.debug( 'сравниваю: %s на стеке и %s в строке %s', x, y, t)
-    if '<' in t or '=' in t:
-      m += y
-      log.debug( 'в таблице есть < или =, наращиваю стек до %s', m)
-
-    if '>' in t:
-      log.warn('встретилось >, сворачиваем %s', m)
-      m = '#'+ recursive_sverni(m[1:])
-    log.warn( 'в таблице нет знаков. t пустое? |%s|', t)
-    if ('<' not in t) and ('>' not in t) and ( '=' not in t):
-      log.debug('в таблице пусто, сравниваем стек с #E')
-      return m == "#E" and y == '#'
-  log.debug('цикл закончен, сравниваем стек с #E')
-  return m == "#E" # and y == '#'
-
-
-def recursive_sverni(s):
-  res = sverni(s)
-  if res == s:
-    log.debug( 'при последнем прогоне m остался %s, хватит сворачивать', s)
-
-    return res # break
-  log.debug('%s -> %s стек изменился, надо сворачивать заново', s, res)
-  res = recursive_sverni(res)
-  return res
-
+      return m == "#E" and  s[i] == '#'
+  return m == "#E" and  s[i] == '#'
 
 def sverni(s):
+  res = b_sverni(s)
+  if res == s:
+    log.debug( 'при последнем прогоне m остался %s, хватит сворачивать', s)
+    return res # break
+  log.debug('%s -> %s стек изменился, надо сворачивать заново', s, res)
+  res = sverni(res)
+  return res
+
+def b_sverni(s):
   res = s
-  for i in range(len(res)):
+  for i in range(len(res))[1:]:
     log.debug( 'i = %s, сворачиваю %s', i, s[i:])
     for rule in R:
-      log.debug( 'пробую правило %s', rule)
+      log.debug( 'пробую правило %s -> %s', rule[0], rule[1])
       if rule[1] == s[i:]:  # check bounds
         logging.debug( 'заменяю %s на %s',s[i:],rule[0])
         res = s[:i] + rule[0]
+        log.info('Свертка %s -> %s', s, res)
         break #return res
     if res != s: 
-      logging.debug( 'свернуто')
+      log.debug( '%s свернуто в %s', s, res)
       break
-
   return res
 
 def sravni(x,y):
@@ -206,7 +165,6 @@ def sravni(x,y):
   else:
     print x, '<', y
 
-  
 ################################################################################
 #	Дальше идут проверки
 # К счастью, для проверки достаточно породить несколько выражений
